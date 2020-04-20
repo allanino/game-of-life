@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html>
+  <meta charset="UTF-8">
+  <title>Game of Life</title>
+
+  <style>
+
+  body {
+    font-family: "Baskerville Old Face";
+    background-color: black;
+    color: white
+  }
+
+  ul {
+    font-weight: 1;
+    font-size: 18px;
+  }
+
+  #container {
+    width: 100%;
+    text-align: center;
+  }
+
+  #plot {
+    display: inline-block;
+    background-color: white;
+  }
+
+  .left {
+    float: left;
+    width: 22%;
+    margin-left: 2%;
+  }
+
+  .right {
+      margin-left: 10%;
+      padding-top: 0px;
+  }
+  </style>
+
+  <body>
+    <div class="left">
+      <h2>Instructions</h2>
+      <h3>Setup<h3>
+        <ul>
+          <li>Draw: use your mouse to draw cells.</li>
+          <li>Fill: press 'f' to fill a square. Press 'w' to make it a rectangle. Keep pressing to get different sizes.</li>
+          <li>Clean: press 'c' to clean the grid.</li>
+          <li>Acorn: press 'a' to draw an acorn.</li>
+          <li>Glider: press 'g' to draw a glider.</li>
+          <li>R-Pentamino: press 'r' to draw an R-pentomino.</li>
+          <li>Grid Size: you can set the gridSize as an URL query parameter (e.g, gridSize=50).</li>
+        </ul>
+      <h3>Running<h3>
+        <ul>
+          <li>Run: press '1' through '9' to run updates on loop, with increasing speed.</li>
+          <li>Stop: press 'Esc' to stop the loop.</li>
+          <li>Update: press 'Enter' to run one update cycle.</li>
+        </ul>
+    </div>
+
+    <div class="right">
+      <div id="container">
+        <canvas id="plot" ></canvas>
+      </div>
+    </div>
+
+    <script>
+    // Get canvas object and context
+    const canvas = document.getElementById('plot');
+    const ctx = canvas.getContext('2d');
+
+    ctx.canvas.height = window.innerHeight - 20;
+    ctx.canvas.width  = ctx.canvas.height;
+
+    // Set grid size and boundaries
+    const urlParams = new URLSearchParams(window.location.search);
+    const gridSize = parseInt(urlParams.get('gridSize') || 50) ;
+
+    const [xMin, xMax, yMin, yMax] = [0, gridSize, 0, gridSize];
+
+    const xScale = ctx.canvas.width/(xMax - xMin);
+    const yScale = ctx.canvas.height/(yMax - yMin);
+
+    const xSize = Math.ceil(ctx.canvas.width/(xMax - xMin));
+    const ySize = Math.ceil(ctx.canvas.height/(yMax - yMin));
+
+    const initializeGrid = (withBooleans) => {
+      let boxes = [];
+      const value = withBooleans ? false : 0;
+      for(let x = xMin; x < xMax; x += 1) {
+        boxes.push([]);
+        for(let y = yMin; y < yMax; y += 1) {
+          boxes[boxes.length - 1].push(value);
+        }
+      }
+      return boxes;
+    };
+
+    let grid = initializeGrid();
+
+    const plotCell = (x, y) => {
+      const color = grid[x][y] ? 'black' : 'white';
+      ctx.fillStyle = grid[x][y] ? 'black' : 'white';
+      ctx.fillRect(Math.floor(x*xScale), Math.floor(y*yScale), xSize, ySize);
+    }
+
+    const plotGrid = () => {
+      for(let x = 0; x < grid.length; x += 1) {
+        for(let y = 0; y < grid.length; y += 1) {
+          plotCell(x, y);
+        }
+      }
+    };
+
+    const cleanGrid = () => {
+      for(let x = 0; x < grid.length; x += 1) {
+        for(let y = 0; y < grid.length; y += 1) {
+          grid[x][y] = false;
+        }
+      }
+
+      plotGrid();
+    }
+
+    const toggleCell = (x, y) => {
+      grid[x][y] = !grid[x][y];
+      plotCell(x, y);
+    };
+
+    let offsetRectX = 1;
+    let offsetRectY = 1;
+    const drawRectangle = () => {
+      offsetRectX = (offsetRectX++) % parseInt((gridSize - 1)/2) + 1;
+      offsetRectY = (offsetRectY++) % parseInt((gridSize - 1)/2) + 1;
+
+      grid = initializeGrid();
+      for(let x = offsetRectX; x < grid.length - offsetRectX; x += 1) {
+        for(let y = offsetRectY; y < grid.length - offsetRectY; y += 1) {
+          grid[x][y] = true;
+        }
+      }
+
+      plotGrid();
+    };
+
+    const drawGlider = () => {
+      const anchor = parseInt(gridSize/2);
+      grid = initializeGrid();
+      grid[anchor+1][anchor+0] = true;
+      grid[anchor+2][anchor+1] = true;
+      grid[anchor+0][anchor+2] = true;
+      grid[anchor+1][anchor+2] = true;
+      grid[anchor+2][anchor+2] = true;
+
+      plotGrid();
+    };
+
+    const drawRPentamino = () => {
+      const anchor = parseInt(gridSize/2);
+      grid = initializeGrid();
+      grid[anchor+1][anchor+0] = true;
+      grid[anchor+2][anchor+0] = true;
+      grid[anchor+0][anchor+1] = true;
+      grid[anchor+1][anchor+1] = true;
+      grid[anchor+1][anchor+2] = true;
+
+      plotGrid();
+    };
+
+    const drawAcorn = () => {
+      const anchor = parseInt(gridSize/2);
+      grid = initializeGrid();
+      grid[anchor+2][anchor+0] = true;
+      grid[anchor+4][anchor+1] = true;
+      grid[anchor+1][anchor+2] = true;
+      grid[anchor+2][anchor+2] = true;
+      grid[anchor+5][anchor+2] = true;
+      grid[anchor+6][anchor+2] = true;
+      grid[anchor+7][anchor+2] = true;
+
+      plotGrid();
+    };
+
+    const cellOffset = (index) => {
+      return (index + gridSize) % gridSize;
+    };
+
+    const gridNeighboursAlive = () => {
+      let neighbors = initializeGrid(false);
+      for(let x = 0; x < grid.length; x += 1){
+        for(let y = 0; y < grid.length; y += 1){
+          if(grid[cellOffset(x-1)][cellOffset(y-1)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x)][cellOffset(y-1)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x+1)][cellOffset(y-1)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x-1)][cellOffset(y)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x+1)][cellOffset(y)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x-1)][cellOffset(y+1)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x)][cellOffset(y+1)]) neighbors[x][y] += 1;
+          if(grid[cellOffset(x+1)][cellOffset(y+1)]) neighbors[x][y] += 1;
+        }
+      }
+
+      return neighbors;
+    };
+
+    // Rules:
+    // 1. Any live cell with two or three live neighbors survives.
+    // 2. Any dead cell with three live neighbors becomes a live cell.
+    // 3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
+    const update = () => {
+      // Get all neighbors count
+      let neighbors = gridNeighboursAlive();
+      // Initialize a new grid to not mess with current grid
+      let newGrid = initializeGrid();
+
+      for(let x = 0; x < grid.length; x += 1) {
+        for(let y = 0; y < grid.length; y += 1) {
+          if(grid[x][y] && (neighbors[x][y] == 2 || neighbors[x][y] == 3)) {
+            newGrid[x][y] = true;
+          } else if(!grid[x][y] && neighbors[x][y] == 3) {
+            newGrid[x][y] = true;
+          } else {
+            newGrid[x][y] = false;
+          }
+        }
+      }
+      // Replace current grid with new one
+      grid = newGrid;
+
+      // Update plot
+      plotGrid();
+    };
+
+    let runningId = null;
+
+    const start = interval => {
+      stop();
+      runningId = setInterval(update, interval);
+    };
+
+    const stop = () => {
+      clearInterval(runningId);
+    }
+
+    // Mouse and keyboard events
+    let lastX;
+    let lastY;
+    let drawing = false;
+    canvas.addEventListener('mousedown', () => drawing = true);
+    canvas.addEventListener('mouseup', () => drawing = false);
+    canvas.addEventListener('mousemove', event => {
+        if(!drawing) return;
+        let x = Math.floor((event.pageX - canvas.offsetLeft)/xScale);
+        let y = Math.floor((event.pageY - canvas.offsetTop)/yScale);
+        if(!drawing || x === lastX && y === lastY) return;
+        lastX = x;
+        lastY = y;
+        toggleCell(x, y);
+    }, false);
+
+    document.addEventListener('keyup', e => {
+      e.preventDefault();
+      if (e.key === 'Enter') update();
+      if (e.key === '1') start(1000);
+      if (e.key === '2') start(500);
+      if (e.key === '3') start(250);
+      if (e.key === '4') start(125);
+      if (e.key === '5') start(75);
+      if (e.key === '6') start(50);
+      if (e.key === '7') start(20);
+      if (e.key === '8') start(10);
+      if (e.key === '9') start(5);
+      if (e.key === 'c') cleanGrid();
+      if (e.key === 'a') drawAcorn();
+      if (e.key === 'g') drawGlider();
+      if (e.key === 'r') drawRPentamino();
+      if (e.key === 'f') drawRectangle();
+      if (e.key === 'w') offsetRectY++;
+      if (e.keyCode === 27) stop(); // Esc
+    });
+  </script>
+  </body>
+</html>
