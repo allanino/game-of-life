@@ -12,7 +12,7 @@
     color: white
   }
 
-  ul {
+  ul, ol {
     font-weight: 1;
     font-size: 18px;
   }
@@ -29,7 +29,7 @@
 
   .left {
     float: left;
-    width: 22%;
+    width: 30%;
     margin-left: 2%;
   }
 
@@ -42,6 +42,12 @@
   <body>
     <div class="left">
       <h2>Instructions</h2>
+      <h3>Rules<h3>
+        <ol>
+          <li>Any live cell with two or three live neighbors survives.</li>
+          <li>Any dead cell with three live neighbors becomes a live cell.</li>
+          <li>All other live cells die in the next generation. Similarly, all other dead cells stay dead.</li>
+        </ol>
       <h3>Setup<h3>
         <ul>
           <li>Draw: use your mouse to draw cells.</li>
@@ -49,6 +55,7 @@
           <li>Clean: press 'c' to clean the grid.</li>
           <li>Acorn: press 'a' to draw an acorn.</li>
           <li>Glider: press 'g' to draw a glider.</li>
+          <li>Fisher hook: press 'h' to draw a fisher hook with 2 gliders.</li>
           <li>R-Pentamino: press 'r' to draw an R-pentomino.</li>
           <li>Grid Size: you can set the gridSize as an URL query parameter (e.g, gridSize=50).</li>
         </ul>
@@ -183,6 +190,39 @@
       plotGrid();
     };
 
+    const drawFisherHook = () => {
+      let anchor = parseInt(gridSize/2);
+      grid = initializeGrid();
+
+      // Draw fisher hook
+      grid[anchor+0][anchor+0] = true;
+      grid[anchor+1][anchor+0] = true;
+      grid[anchor+0][anchor+1] = true;
+      grid[anchor+2][anchor+1] = true;
+      grid[anchor+2][anchor+2] = true;
+      grid[anchor+2][anchor+3] = true;
+      grid[anchor+3][anchor+3] = true;
+
+      // Draw glider
+      anchor = anchor - 10;
+      grid[anchor+1][anchor+0] = true;
+      grid[anchor+2][anchor+1] = true;
+      grid[anchor+0][anchor+2] = true;
+      grid[anchor+1][anchor+2] = true;
+      grid[anchor+2][anchor+2] = true;
+
+      // Draw another glider
+      anchor = anchor - 10;
+      grid[anchor+1][anchor+0] = true;
+      grid[anchor+2][anchor+1] = true;
+      grid[anchor+0][anchor+2] = true;
+      grid[anchor+1][anchor+2] = true;
+      grid[anchor+2][anchor+2] = true;
+
+      plotGrid();
+    };
+
+
     const cellOffset = (index) => {
       return (index + gridSize) % gridSize;
     };
@@ -277,6 +317,7 @@
       if (e.key === 'g') drawGlider();
       if (e.key === 'r') drawRPentamino();
       if (e.key === 'f') drawRectangle();
+      if (e.key === 'h') drawFisherHook();
       if (e.key === 'w') offsetRectY++;
       if (e.keyCode === 27) stop(); // Esc
     });
